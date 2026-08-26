@@ -1,153 +1,286 @@
 package com.agent.app
 
 import android.os.Bundle
+import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
 import com.agent.app.github.GitHubClient
+import com.agent.app.memory.MemoryManager
 import com.agent.app.security.SecureTokenStorage
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private lateinit var tokenStorage: SecureTokenStorage
+    private lateinit var memory: MemoryManager
+
+    private lateinit var chatOutput: TextView
+    private lateinit var messageInput: EditText
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         tokenStorage = SecureTokenStorage(this)
+        memory = MemoryManager(this)
 
-        val layout = LinearLayout(this).apply {
+        buildInterface()
+        loadMemory()
+    }
+
+    private fun buildInterface() {
+
+        val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(32, 32, 32, 32)
+            setPadding(24, 24, 24, 24)
         }
 
         val title = TextView(this).apply {
             text = "Vegas Agent"
-            textSize = 28f
+            textSize = 26f
         }
 
-        val tokenInput = EditText(this).apply {
-            hint = "GitHub Token"
-            inputType =
-                android.text.InputType.TYPE_CLASS_TEXT or
-                android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-
-        val ownerInput = EditText(this).apply {
-            hint = "GitHub Username"
-        }
-
-        val repositoryInput = EditText(this).apply {
-            hint = "Repository"
-        }
-
-        val saveButton = Button(this).apply {
-            text = "Сохранить GitHub Token"
-        }
-
-        val checkButton = Button(this).apply {
-            text = "Проверить GitHub"
-        }
-
-        val result = TextView(this).apply {
-            text = "GitHub не подключён"
+        chatOutput = TextView(this).apply {
             textSize = 16f
+            setPadding(0, 24, 0, 24)
         }
 
-        layout.addView(title)
-        layout.addView(tokenInput)
-        layout.addView(ownerInput)
-        layout.addView(repositoryInput)
-        layout.addView(saveButton)
-        layout.addView(checkButton)
-        layout.addView(result)
-
-        setContentView(layout)
-
-        val savedToken = tokenStorage.getGitHubToken()
-
-        if (!savedToken.isNullOrBlank()) {
-            tokenInput.setText(savedToken)
-            result.text = "Token найден в защищённом хранилище"
+        val scroll = ScrollView(this).apply {
+            addView(chatOutput)
         }
 
-        saveButton.setOnClickListener {
-            val token = tokenInput.text.toString().trim()
-
-            if (token.isEmpty()) {
-                result.text = "Введите GitHub Token"
-                return@setOnClickListener
-            }
-
-            try {
-                tokenStorage.saveGitHubToken(token)
-                tokenInput.setText("")
-                result.text = "✓ GitHub Token сохранён"
-            } catch (e: Exception) {
-                result.text =
-                    "Ошибка сохранения: ${e.message}"
-            }
+        val scrollParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            0
+        ).apply {
+            weight = 1f
         }
 
-        checkButton.setOnClickListener {
+        messageInput = EditText(this).apply {
+            hint = "Напишите сообщение..."
+            inputType = InputType.TYPE_CLASS_TEXT or
+                    InputType.TYPE_TEXT_FLAG_MULTI_LINE
+            minLines = 2
+        }
 
-            val token = tokenStorage.getGitHubToken()
+        val sendButton = Button(this).apply {
+            text = "Отправить"
+        }
 
-            if (token.isNullOrBlank()) {
-                result.text =
-                    "Сначала сохраните GitHub Token"
-                return@setOnClickListener
+        val githubButton = Button(this).apply {
+            text = "GitHub"
+        }
+
+        root.addView(title)
+        root.addView(scroll, scrollParams)
+        root.addView(messageInput)
+        root.addView(sendButton)
+        root.addView(githubButton)
+
+        setContentView(root)
+
+        sendButton.setOnClickListener {
+            saveUserMessage()
+        }
+
+        githubButton.setOnClickListener {
+            showGitHubTest()
+        }
+    }
+
+    private fun saveUserMessage() {
+
+        val message = messageInput.text
+            .toString()
+            .trim()
+
+        if (message.isEmpty()) {
+            return
+        }
+
+        messageInput.setText("")
+
+        lifecycleScope.launch {
+
+            memory.rememberMessage(
+                role = "user",
+                content = message
+            )
+
+            appendMessage(
+                "👤 Ты:\n$message"
+            )
+
+            appendMessage(
+                "🤖 Vegas:\nСообщение сохранено в памяти."
+            )
+
+            memory.rememberMessage(
+                role = "assistant",
+                content = "Сообщение сохранено в памяти."
+            )
+        }
+    }
+
+    private fun loadMemory() {
+
+        lifecycleScope.launch {
+
+            val messages =
+                memory.getConversationContext(20)
+
+            if (messages.isEmpty()) {
+                chatOutput.text =
+                    "Память пуста.\n\nНачните новый разговор."
+                return@launch
             }
 
-            val owner =
-                ownerInput.text.toString().trim()
+            val text = buildString {
 
-            val repository =
-                repositoryInput.text.toString().trim()
+                append("🧠 Последний контекст:\n\n")
 
-            if (owner.isEmpty() || repository.isEmpty()) {
-                result.text =
-                    "Введите Username и Repository"
-                return@setOnClickListener
-            }
+                messages.forEach { message ->
 
-            result.text = "⟳ Проверяю GitHub..."
+                    val icon =
+                        if (message.role == "user") {
+                            "👤"
+                        } else {
+                            "🤖"
+                        }
 
-            lifecycleScope.launch {
-                try {
-                    val client =
-                        GitHubClient(token)
-
-                    val repo =
-                        client.getRepository(
-                            owner,
-                            repository
-                        )
-
-                    result.text =
-                        """
-                        ✓ GitHub подключён
-
-                        Репозиторий:
-                        ${repo.fullName}
-
-                        Ветка:
-                        ${repo.defaultBranch}
-
-                        Приватный:
-                        ${if (repo.isPrivate) "да" else "нет"}
-                        """.trimIndent()
-
-                } catch (e: Exception) {
-
-                    result.text =
-                        "❌ Ошибка GitHub:\n${e.message}"
+                    append(icon)
+                    append(" ")
+                    append(message.content)
+                    append("\n\n")
                 }
             }
+
+            chatOutput.text = text
+        }
+    }
+
+    private fun appendMessage(message: String) {
+
+        chatOutput.append(
+            "\n\n$message"
+        )
+    }
+
+    private fun showGitHubTest() {
+
+        lifecycleScope.launch {
+
+            val token =
+                tokenStorage.getGitHubToken()
+
+            if (token.isNullOrBlank()) {
+
+                appendMessage(
+                    "❌ GitHub Token не сохранён."
+                )
+
+                return@launch
+            }
+
+            appendMessage(
+                "🐙 GitHub подключён.\n" +
+                "Token найден в защищённом хранилище."
+            )
+
+            val ownerInput = EditText(this@MainActivity).apply {
+                hint = "GitHub Username"
+            }
+
+            val repositoryInput = EditText(this@MainActivity).apply {
+                hint = "Repository"
+            }
+
+            val dialog = android.app.AlertDialog.Builder(
+                this@MainActivity
+            )
+                .setTitle("Проверить репозиторий")
+                .setView(
+                    LinearLayout(this@MainActivity).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(32, 16, 32, 0)
+                        addView(ownerInput)
+                        addView(repositoryInput)
+                    }
+                )
+                .setPositiveButton("Проверить", null)
+                .setNegativeButton("Отмена", null)
+                .create()
+
+            dialog.setOnShowListener {
+
+                dialog.getButton(
+                    android.app.AlertDialog.BUTTON_POSITIVE
+                ).setOnClickListener {
+
+                    val owner =
+                        ownerInput.text.toString().trim()
+
+                    val repository =
+                        repositoryInput.text.toString().trim()
+
+                    if (
+                        owner.isEmpty() ||
+                        repository.isEmpty()
+                    ) {
+                        appendMessage(
+                            "❌ Введите Username и Repository."
+                        )
+                        return@setOnClickListener
+                    }
+
+                    appendMessage(
+                        "⟳ Проверяю $owner/$repository..."
+                    )
+
+                    lifecycleScope.launch {
+
+                        try {
+
+                            val client =
+                                GitHubClient(token)
+
+                            val repo =
+                                client.getRepository(
+                                    owner,
+                                    repository
+                                )
+
+                            appendMessage(
+                                """
+                                ✓ Репозиторий найден
+
+                                ${repo.fullName}
+
+                                Ветка: ${repo.defaultBranch}
+                                Приватный: ${
+                                    if (repo.isPrivate) "да"
+                                    else "нет"
+                                }
+                                """.trimIndent()
+                            )
+
+                        } catch (e: Exception) {
+
+                            appendMessage(
+                                "❌ GitHub ошибка:\n${e.message}"
+                            )
+                        }
+                    }
+
+                    dialog.dismiss()
+                }
+            }
+
+            dialog.show()
         }
     }
 }

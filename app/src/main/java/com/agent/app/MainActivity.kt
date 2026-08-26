@@ -120,15 +120,15 @@ class MainActivity : ComponentActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(10), dp(6), dp(6), dp(6))
-            background = roundedBackground(surface, 22)
+            setBackground(roundedBackground(surface, 22))
         }
 
         messageInput = EditText(this).apply {
             hint = "Напишите Vegas..."
-            hintTextColor = Color.rgb(120, 120, 130)
+            setHintTextColor(Color.rgb(120, 120, 130))
             setTextColor(white)
             textSize = 16f
-            background = null
+            setBackground(null)
             inputType = InputType.TYPE_CLASS_TEXT or
                     InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 1
@@ -149,7 +149,7 @@ class MainActivity : ComponentActivity() {
             textSize = 22f
             gravity = Gravity.CENTER
             setTextColor(white)
-            background = roundedBackground(accent, 18)
+            setBackground(roundedBackground(accent, 18))
             setPadding(dp(12), dp(8), dp(12), dp(8))
             isClickable = true
             isFocusable = true
@@ -166,7 +166,7 @@ class MainActivity : ComponentActivity() {
             text = "🐙  GitHub"
             textSize = 14f
             setTextColor(white)
-            background = roundedBackground(surfaceLight, 16)
+            setBackground(roundedBackground(surfaceLight, 16))
             setAllCaps(false)
         }
 
@@ -290,7 +290,7 @@ class MainActivity : ComponentActivity() {
         name: String,
         message: String,
         color: Int,
-        gravity: Int
+        gravityValue: Int
     ): View {
 
         val container = LinearLayout(this).apply {
@@ -319,7 +319,7 @@ class MainActivity : ComponentActivity() {
             dp(310),
             LinearLayout.LayoutParams.WRAP_CONTENT
         ).apply {
-            gravity = gravity
+            gravity = gravityValue
             topMargin = dp(6)
             bottomMargin = dp(6)
         }

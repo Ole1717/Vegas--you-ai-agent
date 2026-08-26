@@ -64,7 +64,9 @@ class MainActivity : ComponentActivity() {
             hint = "Напишите сообщение..."
             inputType = InputType.TYPE_CLASS_TEXT or
                     InputType.TYPE_TEXT_FLAG_MULTI_LINE
-            minLines = 2
+            minLines = 1
+            maxLines = 5
+            isVerticalScrollBarEnabled = true
         }
 
         val sendButton = Button(this).apply {

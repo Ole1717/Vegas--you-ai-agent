@@ -1,6 +1,7 @@
 package com.agent.app
 import com.agent.app.agent.AgentCore
 import com.agent.app.agent.AgentRequest
+import com.agent.app.files.FileManager
 
 import android.os.Bundle
 import android.view.WindowInsets
@@ -22,6 +23,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var tokenStorage: SecureTokenStorage
     private lateinit var memory: MemoryManager
     private lateinit var agentCore: AgentCore
+    private lateinit var fileManager: FileManager
 
     private lateinit var chatOutput: TextView
     private lateinit var messageInput: EditText
@@ -31,7 +33,8 @@ class MainActivity : ComponentActivity() {
 
         tokenStorage = SecureTokenStorage(this)
         memory = MemoryManager(this)
-        agentCore = AgentCore(memory)
+        fileManager = FileManager(filesDir.resolve("projects"))
+        agentCore = AgentCore(memory, fileManager)
 
         buildInterface()
         loadMemory()

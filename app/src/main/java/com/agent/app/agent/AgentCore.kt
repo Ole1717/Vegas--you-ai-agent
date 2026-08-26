@@ -1,5 +1,6 @@
 package com.agent.app.agent
 
+import com.agent.app.files.FileManager
 import com.agent.app.memory.MemoryManager
 
 data class AgentRequest(
@@ -13,7 +14,8 @@ data class AgentContext(
 )
 
 class AgentCore(
-    private val memory: MemoryManager
+    private val memory: MemoryManager,
+    private val files: FileManager
 ) {
 
     suspend fun buildContext(
@@ -71,6 +73,44 @@ class AgentCore(
         return response
     }
 
+    suspend fun createFile(
+        path: String,
+        content: String
+    ): Boolean {
+        return files.createFile(
+            path,
+            content
+        )
+    }
+
+    suspend fun readFile(
+        path: String
+    ): String {
+        return files.readFile(path)
+    }
+
+    suspend fun updateFile(
+        path: String,
+        content: String
+    ) {
+        files.updateFile(
+            path,
+            content
+        )
+    }
+
+    suspend fun deleteFile(
+        path: String
+    ): Boolean {
+        return files.delete(path)
+    }
+
+    suspend fun listFiles(
+        path: String = ""
+    ): List<String> {
+        return files.listFiles(path)
+    }
+
     private fun createTemporaryResponse(
         request: AgentRequest,
         context: AgentContext
@@ -83,7 +123,7 @@ class AgentCore(
         return buildString {
 
             append("Задача получена.\n\n")
-            append("Я подготовил контекст для AI.\n\n")
+            append("Контекст подготовлен для AI.\n\n")
 
             append("Память сообщений: ")
             append(context.messages.size)

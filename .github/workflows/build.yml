@@ -1,4 +1,4 @@
-name: Build Vegas APK
+name: Build Vegas APK v2
 
 on:
   push:

@@ -139,7 +139,7 @@ class MainActivity : ComponentActivity() {
                         ${repo.defaultBranch}
 
                         Приватный:
-                        ${if (repo.private) "да" else "нет"}
+                        ${if (repo.isPrivate) "да" else "нет"}
                         """.trimIndent()
 
                 } catch (e: Exception) {

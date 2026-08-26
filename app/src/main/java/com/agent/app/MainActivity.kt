@@ -1,4 +1,6 @@
 package com.agent.app
+import com.agent.app.agent.AgentCore
+import com.agent.app.agent.AgentRequest
 
 import android.os.Bundle
 import android.view.WindowInsets
@@ -19,6 +21,7 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var tokenStorage: SecureTokenStorage
     private lateinit var memory: MemoryManager
+    private lateinit var agentCore: AgentCore
 
     private lateinit var chatOutput: TextView
     private lateinit var messageInput: EditText
@@ -28,6 +31,7 @@ class MainActivity : ComponentActivity() {
 
         tokenStorage = SecureTokenStorage(this)
         memory = MemoryManager(this)
+        agentCore = AgentCore(memory)
 
         buildInterface()
         loadMemory()
@@ -93,7 +97,7 @@ class MainActivity : ComponentActivity() {
         }
 
         sendButton.setOnClickListener {
-            saveUserMessage()
+            processWithAgent()
         }
 
         githubButton.setOnClickListener {
@@ -101,37 +105,26 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun saveUserMessage() {
 
-        val message = messageInput.text
-            .toString()
-            .trim()
-
-        if (message.isEmpty()) {
-            return
+            memory.rememberMessage(
+                role = "assistant",
         }
+    }
+
+    private fun processWithAgent() {
+        val message = messageInput.text.toString().trim()
+
+        if (message.isEmpty()) return
 
         messageInput.setText("")
 
         lifecycleScope.launch {
-
-            memory.rememberMessage(
-                role = "user",
-                content = message
+            val response = agentCore.process(
+                AgentRequest(message)
             )
 
-            appendMessage(
-                "👤 Ты:\n$message"
-            )
-
-            appendMessage(
-                "🤖 Vegas:\nСообщение сохранено в памяти."
-            )
-
-            memory.rememberMessage(
-                role = "assistant",
-                content = "Сообщение сохранено в памяти."
-            )
+            appendMessage("👤 Ты:\n$message")
+            appendMessage("🤖 Vegas:\n$response")
         }
     }
 

@@ -108,12 +108,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-
-            memory.rememberMessage(
-                role = "assistant",
-        }
-    }
-
     private fun processWithAgent() {
         val message = messageInput.text.toString().trim()
 

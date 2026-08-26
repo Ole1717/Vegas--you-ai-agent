@@ -1,6 +1,7 @@
 package com.agent.app
 
 import android.os.Bundle
+import android.view.WindowInsets
 import android.text.InputType
 import android.widget.Button
 import android.widget.EditText
@@ -84,6 +85,12 @@ class MainActivity : ComponentActivity() {
         root.addView(githubButton)
 
         setContentView(root)
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val ime = insets.getInsets(WindowInsets.Type.ime())
+            val system = insets.getInsets(WindowInsets.Type.systemBars())
+            view.setPadding(24, 24, 24, maxOf(24, ime.bottom - system.bottom))
+            insets
+        }
 
         sendButton.setOnClickListener {
             saveUserMessage()
